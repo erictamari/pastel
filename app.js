@@ -677,4 +677,131 @@ function renderProductsReport(start,end){
   if (!products.length) return '<p class="muted" style="padding:20px 0;">Nenhum produto vendido no período.</p>';
   const totalRev = products.reduce((a,p)=>a+p.revenue,0);
   return `<table class="data-table"><thead><tr><th>#</th><th>Produto</th><th>Qtd vendida</th><th>Faturamento</th><th>%</th></tr></thead><tbody>
-    ${products.map
+    ${products.map((p,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(p.name)}</td><td>${p.qty}</td><td>${money(p.revenue)}</td><td>${totalRev?((p.revenue/totalRev)*100).toFixed(1):0}%</td></tr>`).join('')}
+    <tr class="total-row"><td></td><td><strong>Total</strong></td><td><strong>${products.reduce((a,p)=>a+p.qty,0)}</strong></td><td><strong>${money(totalRev)}</strong></td><td>100%</td></tr>
+  </tbody></table>`;
+}
+
+function renderDailyReport(start,end){
+  const received = db.sales.filter(s=>s.status==='received'&&inDateRange(s.createdAt,start,end));
+  const map = {};
+  received.forEach(s=>{
+    const d = todayStr(new Date(s.createdAt));
+    if (!map[d]) map[d] = {count:0, items:0, revenue:0};
+    map[d].count++;
+    map[d].items += s.items.reduce((a,i)=>a+i.qty,0);
+    map[d].revenue += s.total;
+  });
+  const rows = Object.entries(map).sort((a,b)=>b[0].localeCompare(a[0]));
+  if (!rows.length) return '<p class="muted" style="padding:20px 0;">Sem vendas no período.</p>';
+  const totalRev = rows.reduce((a,[,v])=>a+v.revenue,0);
+  const totalCount = rows.reduce((a,[,v])=>a+v.count,0);
+  const totalItems = rows.reduce((a,[,v])=>a+v.items,0);
+  return `<table class="data-table"><thead><tr><th>Data</th><th>Pedidos</th><th>Itens</th><th>Faturamento</th></tr></thead><tbody>
+    ${rows.map(([d,v])=>`<tr><td>${new Date(d+'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${v.count}</td><td>${v.items}</td><td>${money(v.revenue)}</td></tr>`).join('')}
+    <tr class="total-row"><td><strong>Total</strong></td><td><strong>${totalCount}</strong></td><td><strong>${totalItems}</strong></td><td><strong>${money(totalRev)}</strong></td></tr>
+  </tbody></table>`;
+}
+
+function renderFinanceReport(start,end){
+  const sessions = db.cashSessions.filter(s=>inDateRange(s.closedAt||s.openedAt,start,end));
+  const cancelled = db.sales.filter(s=>s.status==='cancelled'&&inDateRange(s.createdAt,start,end));
+  const totalCancelled = cancelled.reduce((a,s)=>a+s.total,0);
+  const totalReceived = sessions.reduce((a,s)=>a+s.totalReceived,0);
+  const totalDiff = sessions.reduce((a,s)=>a+(s.difference||0),0);
+  return `<div class="report-summary">
+    <div class="report-card"><small>Sessões fechadas</small><strong>${sessions.length}</strong></div>
+    <div class="report-card"><small>Faturamento (recebido)</small><strong>${money(totalReceived)}</strong></div>
+    <div class="report-card"><small>Diferença de caixa</small><strong>${money(totalDiff)}</strong></div>
+    <div class="report-card danger"><small>Cancelados</small><strong>${money(totalCancelled)}</strong></div>
+  </div>
+  <h3 class="report-sub">Sessões de caixa fechadas</h3>
+  ${sessions.length?`<table class="data-table"><thead><tr><th>Aberto</th><th>Fechado</th><th>Recebido</th><th>Esperado</th><th>Contado</th><th>Dif.</th></tr></thead><tbody>
+    ${sessions.map(s=>`<tr><td>${fmtDate(s.openedAt)}</td><td>${fmtDate(s.closedAt)}</td><td>${money(s.totalReceived)}</td><td>${money(s.expectedCash)}</td><td>${money(s.countedAmount)}</td><td class="${s.difference<0?'text-danger':''}">${money(s.difference)}</td></tr>`).join('')}
+  </tbody></table>`:'<p class="muted">Nenhuma sessão fechada no período.</p>'}`;
+}
+
+function exportCsv(start,end){
+  const rows = [['Senha','Data','Status','Pagamento','Itens','Subtotal','Desconto','Total']];
+  const sales = db.sales.filter(s=>inDateRange(s.createdAt,start,end)).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  sales.forEach(s=>{
+    rows.push([String(s.senha).padStart(3,'0'), fmtDate(s.createdAt), s.status, s.paymentMethod||'', s.items.reduce((a,i)=>a+i.qty,0), s.subtotal.toFixed(2), s.discount.toFixed(2), s.total.toFixed(2)]);
+  });
+  const csv = '\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = `vendas-${start}-a-${end}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function printCurrentReport(){
+  const start = $('#reportStart').value, end = $('#reportEnd').value;
+  let body = '';
+  if (activeReportsTab==='revenue') body = renderRevenueReport(start,end);
+  else if (activeReportsTab==='products') body = renderProductsReport(start,end);
+  else if (activeReportsTab==='daily') body = renderDailyReport(start,end);
+  else body = renderFinanceReport(start,end);
+  const titleMap = {revenue:'FATURAMENTO POR PERÍODO', products:'PRODUTOS VENDIDOS', daily:'VENDAS POR DIA', finance:'FINANCEIRO'};
+  $('#printArea').innerHTML = `<article class="receipt report-print">
+    <h2>${escapeHtml(db.settings.storeName)}</h2>
+    <div class="center">${titleMap[activeReportsTab]}</div>
+    <div class="center small">Período: ${start||'início'} até ${end||'hoje'}</div>
+    <div class="rule"></div>
+    ${body}
+    <div class="rule"></div>
+    <div class="center small">${fmtDate(new Date().toISOString())}</div>
+  </article>`;
+  document.body.classList.add('printing');
+  setTimeout(()=>{ window.print(); document.body.classList.remove('printing'); }, 80);
+}
+
+// ============ Init e listeners ============
+$('#applyDiscountBtn').addEventListener('click', applyDiscount);
+$('#discountType').addEventListener('change', ()=>{ discountType=$('#discountType').value; renderCart(); });
+$('#finishBtn').addEventListener('click', finishOrder);
+$('#newOrderBtn').addEventListener('click', ()=>{ if(cart.length&&!confirm('Iniciar novo pedido? O atual será descartado.'))return; resetOrder(); notify('Novo pedido iniciado.'); });
+$('#clearOrderBtn').addEventListener('click', ()=>{ if(!cart.length)return; if(confirm('Remover todos os itens?'))resetOrder(); });
+$('#cancelOrderBtn').addEventListener('click', ()=>{ if(!cart.length){notify('Sem pedido.');return;} if(confirm('Cancelar este pedido?')){resetOrder();notify('Pedido cancelado.');} });
+$('#manageBtn').addEventListener('click', ()=>openManage());
+$('#settingsBtn').addEventListener('click', openSettings);
+$('#cashBtn').addEventListener('click', openCashModal);
+$('#ordersBtn').addEventListener('click', openOrders);
+$('#reportsBtn').addEventListener('click', openReports);
+
+$$('[data-close]').forEach(b=>b.addEventListener('click', ()=>{
+  const m = $('#'+b.dataset.close);
+  m.classList.add('hidden');
+  if (b.dataset.close==='passwordModal' && passwordResolve){ const r=passwordResolve; passwordResolve=null; r(false); }
+}));
+$$('.modal-backdrop').forEach(m=>m.addEventListener('click', e=>{
+  if (e.target===m){
+    m.classList.add('hidden');
+    if (m.id==='passwordModal' && passwordResolve){ const r=passwordResolve; passwordResolve=null; r(false); }
+  }
+}));
+$$('.manage-tab[data-tab]').forEach(b=>b.addEventListener('click', ()=>{ activeManageTab=b.dataset.tab; renderManage(); }));
+$$('.manage-tab[data-otab]').forEach(b=>b.addEventListener('click', ()=>{ activeOrdersTab=b.dataset.otab; renderOrders(); }));
+$$('.manage-tab[data-rtab]').forEach(b=>b.addEventListener('click', ()=>{ activeReportsTab=b.dataset.rtab; renderReports(); }));
+$('#reportStart').addEventListener('change', renderReports);
+$('#reportEnd').addEventListener('change', renderReports);
+$('#reportPrintBtn').onclick = printCurrentReport;
+$('#reportCsvBtn').onclick = ()=>exportCsv($('#reportStart').value, $('#reportEnd').value);
+$('#printKitchenBtn').onclick = ()=>printReceipt('kitchen');
+$('#printCustomerBtn').onclick = ()=>printReceipt('customer');
+$('#printFullBtn').onclick = ()=>printReceipt('full');
+$('#passwordConfirmBtn').onclick = confirmPassword;
+$('#passwordInput').addEventListener('keydown', e=>{ if (e.key==='Enter'){ e.preventDefault(); confirmPassword(); } });
+
+function tick(){
+  const d = new Date();
+  $('#clock').textContent = d.toLocaleDateString('pt-BR')+' · '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(tick, 1000);
+
+applySettings();
+renderGroups();
+renderProducts();
+renderCart();
+updateCashStatus();
+tick();
+})();
