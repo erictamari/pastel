@@ -25,13 +25,23 @@ PDV web para pastelaria/lanchonete em HTML/CSS/JS puro, preparado para publicar 
 2. Registrar pedidos; escolher **forma de pagamento**; clicar **Concluir e imprimir**.
 3. O sistema gera uma **senha aleatória de 100 a 999** (não sequencial) impressa em destaque nas 3 vias (cozinha, cliente, cupom completo).
 4. **Pedidos** (topo, com badge laranja mostrando pendentes): marcar como **Recebidos** ao entregar/cobrar; cancelar com senha master se necessário.
-5. **Fechar caixa** ao encerrar o turno — imprime relatório com valores, formas de pagamento, produtos vendidos e diferença de gaveta.
+5. **Fechar caixa** ao encerrar o turno.
 
-### Fechamento de caixa — regra nova
-**O caixa só fecha quando não houver pedidos pendentes.** Ao abrir o fechamento com pendências, aparece um aviso destacado com a lista de senhas pendentes e um botão **"Ver pedidos pendentes"** que leva direto para a aba Pendentes. O botão "Fechar caixa" fica desabilitado até tudo ser recebido ou cancelado.
+### Janela de Pedidos
+A janela de Pedidos mostra **apenas os pedidos do caixa aberto**. Se você fechar o caixa e abrir um novo, essa janela começa vazia (apenas novas vendas). Todos os pedidos antigos ficam disponíveis nos Relatórios.
+
+### Fechamento de caixa
+**O caixa só fecha quando não houver pedidos pendentes.** Ao abrir o fechamento com pendências, aparece um aviso destacado com a lista de senhas pendentes e um botão **"Ver pedidos pendentes"** que leva direto para a aba Pendentes.
+
+O relatório de fechamento de caixa (impresso e no modal) inclui:
+- Valores por forma de pagamento
+- Total recebido, contado e diferença
+- Produtos vendidos
+- **Descontos aplicados** (senha e valor)
+- **Cancelamentos** (senha e valor)
 
 ## Relatórios (topo → Relatórios)
-Todos com **período personalizado** (data inicial e final):
+Todos com **período personalizado** (data inicial e final), acumulativos:
 
 | Aba | Conteúdo |
 |---|---|
