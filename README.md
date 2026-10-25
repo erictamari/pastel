@@ -1,30 +1,52 @@
 # PDV Pastel & Lanche
 
-PDV web para pastelaria/lanchonete, feito em HTML, CSS e JavaScript puro, preparado para publicar no GitHub Pages.
+PDV web para pastelaria/lanchonete em HTML/CSS/JS puro, publicado no GitHub Pages.
 
 ## Arquivos
-- `index.html` — estrutura da aplicação
-- `style.css` — layout responsivo e estilos de impressão
-- `app.js` — cadastro, carrinho, descontos, vendas, armazenamento local e impressão
-- `README.md` — instruções
+- `index.html` — estrutura
+- `style.css` — layout responsivo + estilos de impressão
+- `app.js` — lógica (cadastros, carrinho, caixa, pedidos, relatórios, senha master)
+- `README.md` — este guia
 
 ## Como publicar no GitHub Pages
 1. Faça backup dos arquivos atuais do repositório.
-2. Substitua os arquivos pelos quatro arquivos desta pasta (ou copie o conteúdo de cada um para o arquivo correspondente).
-3. Faça commit/push para o GitHub.
-4. No repositório, acesse **Settings → Pages** e selecione a branch principal e a pasta `/ (root)`.
-5. Abra o endereço GitHub Pages do projeto.
+2. Substitua os quatro arquivos por estes.
+3. Commit/push.
+4. **Settings → Pages** → branch principal + `/ (root)`.
+5. Abra o endereço publicado.
 
-## Uso inicial
-- Há produtos de exemplo para demonstrar o funcionamento. Edite ou exclua esses produtos e grupos em **Cadastros**.
-- Os dados são salvos no `localStorage` do navegador/dispositivo. Não existe sincronização entre computadores ou tablets e limpar os dados do navegador pode apagar os cadastros e vendas. Exporte as vendas em CSV regularmente.
-- Configure nome, cores e fonte em **Aparência**.
-- Ao concluir uma venda, o sistema registra o pedido e chama a impressão das três vias (cozinha, cliente e cupom completo). É possível reimprimir cada via individualmente no modal ou pelo histórico.
+## Senha master
+- Senha padrão: **`1234`**
+- **Altere em Aparência → Senha master** no primeiro uso.
+- Necessária para: cancelar pedido, cancelar item de um pedido.
 
-## Importante sobre impressão automática
-Por segurança, navegadores comuns exigem confirmação na caixa de impressão. GitHub Pages, por si só, não pode imprimir silenciosamente nem escolher uma impressora automaticamente. Para operação realmente sem confirmação, use um computador dedicado em modo quiosque com uma solução local de impressão compatível (por exemplo, QZ Tray configurado localmente) e valide a integração com sua impressora térmica. A impressão do navegador também depende do tamanho de papel configurado no driver.
+## Fluxo de operação
+1. **Abrir caixa** (topo) informando o fundo de troco. *Não é possível vender com o caixa fechado.*
+2. Registrar pedidos pelo catálogo; escolher forma de pagamento e clicar **Concluir e imprimir**.
+3. O sistema gera uma **senha aleatória de 100 a 999** (não sequencial) impressa em destaque nas 3 vias (cozinha, cliente, cupom completo).
+4. **Pedidos** (topo): marcar como **Recebidos** ao entregar/cobrar; cancelar com senha master se necessário.
+5. **Fechar caixa** ao encerrar o turno — imprime relatório com valores, formas de pagamento, produtos vendidos, diferença de gaveta.
 
-## Limitações desta versão
-- Não é um emissor fiscal: o cupom impresso é um comprovante não fiscal, não NFC-e/SAT.
-- Os dados ficam no dispositivo e navegador em uso; não há login, banco de dados na nuvem, sincronização multiusuário ou integração de pagamentos.
-- Antes de usar em operação real, teste impressão, preços, descontos e backup em seu equipamento.
+## Relatórios (topo → Relatórios)
+Todos com **período personalizado** (data inicial e final):
+
+| Aba | Conteúdo |
+|---|---|
+| **Faturamento** | Total recebido, pedidos, ticket médio, itens, descontos, a receber e cancelados + quebra por forma de pagamento |
+| **Produtos vendidos** | Lista agregada por produto (quantidade e faturamento) com % |
+| **Vendas por dia** | Pedidos, itens e faturamento em cada dia do período |
+| **Financeiro** | Sessões de caixa fechadas (esperado × contado × diferença) + total de cancelados |
+
+Cada relatório tem **📥 CSV** e **🖨 Imprimir** (formato cupom 80 mm).
+
+## Impressão
+- Fonte dos cupons: **14 px** (senha em destaque ~42 px).
+- O navegador exige confirmação na caixa de impressão (segurança). Para impressão realmente automática, use um PC em modo quiosque com QZ Tray ou similar.
+
+## Migração dos dados existentes
+O `localStorage` é migrado automaticamente na primeira execução da nova versão. As vendas antigas recebem uma senha aleatória e o status "Recebido".
+
+## Limitações
+- Não é emissor fiscal (não é NFC-e/SAT).
+- Dados ficam apenas no navegador/dispositivo — sem nuvem, sem multiusuário, sem sincronização.
+- Exporte o CSV com frequência.
