@@ -220,6 +220,12 @@ function renderCashSummary(){
   const pendingAll = allPendingOrders();
   const pendingTotal = pendingAll.reduce((a,x)=>a+x.total,0);
   const blocker = pendingAll.length > 0;
+
+  // NOVO: descontos e cancelamentos da sessão
+  const sessionSales = db.sales.filter(x=>x.sessionId===s.id);
+  const discounts = sessionSales.filter(x=>x.discount>0 && x.status!=='cancelled');
+  const cancelled = sessionSales.filter(x=>x.status==='cancelled');
+
   $('#cashModalContent').innerHTML = `
     <div class="cash-block">
       <div class="cash-row"><span>Aberto em</span><strong>${fmtDate(s.openedAt)}</strong></div>
@@ -239,7 +245,18 @@ function renderCashSummary(){
     <div class="cash-row"><span>Pix</span><strong>${money(sum.byMethod['Pix']||0)}</strong></div>
     <div class="cash-row total"><span>Total recebido (${sum.received.length})</span><strong>${money(sum.totalReceived)}</strong></div>
     ${sum.pending.length?`<div class="cash-row muted"><span>A receber (${sum.pending.length})</span><strong>${money(sum.totalPending)}</strong></div>`:''}
-    ${sum.cancelled.length?`<div class="cash-row muted"><span>Cancelados (${sum.cancelled.length})</span><strong>− ${money(sum.totalCancelled)}</strong></div>`:''}
+    
+    ${discounts.length?`
+    <h3 class="cash-sub">Descontos aplicados</h3>
+    ${discounts.map(x=>`<div class="cash-row"><span>Senha ${String(x.senha).padStart(3,'0')}</span><strong>− ${money(x.discount)}</strong></div>`).join('')}
+    <div class="cash-row"><span>Total descontos</span><strong>− ${money(discounts.reduce((a,x)=>a+x.discount,0))}</strong></div>
+    `:''}
+
+    ${cancelled.length?`
+    <h3 class="cash-sub">Cancelamentos</h3>
+    ${cancelled.map(x=>`<div class="cash-row"><span>Senha ${String(x.senha).padStart(3,'0')}</span><strong>${money(x.total)}</strong></div>`).join('')}
+    `:''}
+
     <h3 class="cash-sub">Fechamento</h3>
     <div class="cash-row"><span>Dinheiro esperado na gaveta</span><strong>${money(sum.expectedCash)}</strong></div>
     <label class="field-label">Valor contado na gaveta (R$)</label>
@@ -305,6 +322,12 @@ function aggregateProducts(sales){
 
 function cashReportHtml(closed){
   const products = aggregateProducts(db.sales.filter(s=>s.sessionId===closed.id&&s.status==='received'));
+  // NOVO: descontos e cancelamentos
+  const sessionSales = db.sales.filter(s=>s.sessionId===closed.id);
+  const discounts = sessionSales.filter(s=>s.discount>0 && s.status!=='cancelled');
+  const cancelled = sessionSales.filter(s=>s.status==='cancelled');
+  const totalDiscount = discounts.reduce((a,s)=>a+s.discount,0);
+  
   return `<article class="receipt">
     <h2>${escapeHtml(db.settings.storeName)}</h2>
     <div class="center">FECHAMENTO DE CAIXA</div>
@@ -333,6 +356,22 @@ function cashReportHtml(closed){
     <table>
       ${products.map(p=>`<tr><td>${p.qty}x ${escapeHtml(p.name)}</td><td class="right">${money(p.revenue)}</td></tr>`).join('')}
     </table>`:''}
+    
+    ${discounts.length?`
+    <div class="rule"></div>
+    <div class="center small"><strong>DESCONTOS APLICADOS</strong></div>
+    <table>
+      ${discounts.map(s=>`<tr><td>Senha ${String(s.senha).padStart(3,'0')}</td><td class="right">− ${money(s.discount)}</td></tr>`).join('')}
+      <tr><td class="big">Total descontos</td><td class="right big">− ${money(totalDiscount)}</td></tr>
+    </table>`:''}
+
+    ${cancelled.length?`
+    <div class="rule"></div>
+    <div class="center small"><strong>CANCELAMENTOS</strong></div>
+    <table>
+      ${cancelled.map(s=>`<tr><td>Senha ${String(s.senha).padStart(3,'0')}</td><td class="right">${money(s.total)}</td></tr>`).join('')}
+    </table>`:''}
+
     <div class="rule"></div>
     <div class="center small">${fmtDate(new Date().toISOString())}</div>
   </article>`;
@@ -431,15 +470,29 @@ function openOrders(){
 }
 
 function renderOrders(){
-  const countBy = s => db.sales.filter(x=>x.status===s).length;
+  if (!db.cashSession){
+    $$('.manage-tab[data-otab]').forEach(b=>{
+      const k = b.dataset.otab;
+      const label = k==='pending'?'Pendentes':k==='received'?'Recebidos':'Cancelados';
+      b.textContent = `${label} (0)`;
+      b.classList.toggle('active', b.dataset.otab===activeOrdersTab);
+    });
+    $('#ordersContent').innerHTML = `<div class="empty-state">Nenhum caixa aberto.<br>Abra o caixa para visualizar os pedidos.</div>`;
+    return;
+  }
+
+  const currentSessionId = db.cashSession.id;
+  const countBy = s => db.sales.filter(x=>x.sessionId===currentSessionId && x.status===s).length;
   $$('.manage-tab[data-otab]').forEach(b=>{
     const k = b.dataset.otab;
     const label = k==='pending'?'Pendentes':k==='received'?'Recebidos':'Cancelados';
     b.textContent = `${label} (${countBy(k)})`;
     b.classList.toggle('active', b.dataset.otab===activeOrdersTab);
   });
-  const list = db.sales.filter(s=>s.status===activeOrdersTab)
+  
+  const list = db.sales.filter(s=>s.sessionId===currentSessionId && s.status===activeOrdersTab)
     .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  
   if (!list.length){
     $('#ordersContent').innerHTML = `<div class="empty-state">Nenhum pedido nesta categoria.</div>`;
     return;
