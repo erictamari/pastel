@@ -11,7 +11,7 @@
   <div class="top-actions">
     <span id="clock"></span>
     <button class="btn ghost cash-btn" id="cashBtn">💰 <span class="btn-label">Abrir caixa</span></button>
-    <button class="btn ghost" id="ordersBtn">📋 <span class="btn-label">Pedidos</span></button>
+    <button class="btn ghost orders-btn" id="ordersBtn">📋 <span class="btn-label">Pedidos</span><span class="badge" id="ordersBadge" hidden>0</span></button>
     <button class="btn ghost" id="reportsBtn">📊 <span class="btn-label">Relatórios</span></button>
     <button class="btn ghost" id="settingsBtn">⚙ <span class="btn-label">Aparência</span></button>
     <button class="btn ghost" id="manageBtn">☰ <span class="btn-label">Cadastros</span></button>
@@ -54,7 +54,6 @@
   </aside>
 </main>
 
-<!-- Cadastros -->
 <div class="modal-backdrop hidden" id="manageModal">
   <section class="modal wide">
     <div class="modal-head"><div><h2>Cadastros</h2><p>Gerencie grupos e produtos.</p></div><button class="icon-btn" data-close="manageModal">✕</button></div>
@@ -63,7 +62,6 @@
   </section>
 </div>
 
-<!-- Editor -->
 <div class="modal-backdrop hidden" id="editModal">
   <section class="modal">
     <div class="modal-head"><h2 id="editTitle">Novo produto</h2><button class="icon-btn" data-close="editModal">✕</button></div>
@@ -71,7 +69,6 @@
   </section>
 </div>
 
-<!-- Aparência -->
 <div class="modal-backdrop hidden" id="settingsModal">
   <section class="modal">
     <div class="modal-head"><h2>Aparência e Segurança</h2><button class="icon-btn" data-close="settingsModal">✕</button></div>
@@ -95,7 +92,6 @@
   </section>
 </div>
 
-<!-- Caixa -->
 <div class="modal-backdrop hidden" id="cashModal">
   <section class="modal">
     <div class="modal-head"><h2 id="cashModalTitle">Abrir caixa</h2><button class="icon-btn" data-close="cashModal">✕</button></div>
@@ -103,7 +99,6 @@
   </section>
 </div>
 
-<!-- Pedidos -->
 <div class="modal-backdrop hidden" id="ordersModal">
   <section class="modal wide">
     <div class="modal-head"><div><h2>Pedidos</h2><p>Gerencie pedidos pendentes, recebidos e cancelados.</p></div><button class="icon-btn" data-close="ordersModal">✕</button></div>
@@ -116,7 +111,6 @@
   </section>
 </div>
 
-<!-- Relatórios -->
 <div class="modal-backdrop hidden" id="reportsModal">
   <section class="modal wide">
     <div class="modal-head"><div><h2>Relatórios</h2><p>Análises de vendas e financeiro.</p></div><button class="icon-btn" data-close="reportsModal">✕</button></div>
@@ -136,7 +130,6 @@
   </section>
 </div>
 
-<!-- Senha -->
 <div class="modal-backdrop hidden" id="passwordModal">
   <section class="modal narrow">
     <div class="modal-head"><h2>Senha necessária</h2><button class="icon-btn" data-close="passwordModal">✕</button></div>
@@ -146,7 +139,6 @@
   </section>
 </div>
 
-<!-- Recibo -->
 <div class="modal-backdrop hidden" id="receiptModal">
   <section class="modal">
     <div class="modal-head"><h2>Pedido concluído</h2><button class="icon-btn" data-close="receiptModal">✕</button></div>
