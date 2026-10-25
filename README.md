@@ -1,6 +1,6 @@
 # PDV Pastel & Lanche
 
-PDV web para pastelaria/lanchonete em HTML/CSS/JS puro, publicado no GitHub Pages.
+PDV web para pastelaria/lanchonete em HTML/CSS/JS puro, preparado para publicar no GitHub Pages.
 
 ## Arquivos
 - `index.html` — estrutura
@@ -17,15 +17,18 @@ PDV web para pastelaria/lanchonete em HTML/CSS/JS puro, publicado no GitHub Page
 
 ## Senha master
 - Senha padrão: **`1234`**
-- **Altere em Aparência → Senha master** no primeiro uso.
-- Necessária para: cancelar pedido, cancelar item de um pedido.
+- Altere em **Aparência → Senha master** no primeiro uso.
+- Necessária para: **cancelar pedido** e **cancelar item** de um pedido.
 
 ## Fluxo de operação
 1. **Abrir caixa** (topo) informando o fundo de troco. *Não é possível vender com o caixa fechado.*
-2. Registrar pedidos pelo catálogo; escolher forma de pagamento e clicar **Concluir e imprimir**.
+2. Registrar pedidos; escolher **forma de pagamento**; clicar **Concluir e imprimir**.
 3. O sistema gera uma **senha aleatória de 100 a 999** (não sequencial) impressa em destaque nas 3 vias (cozinha, cliente, cupom completo).
-4. **Pedidos** (topo): marcar como **Recebidos** ao entregar/cobrar; cancelar com senha master se necessário.
-5. **Fechar caixa** ao encerrar o turno — imprime relatório com valores, formas de pagamento, produtos vendidos, diferença de gaveta.
+4. **Pedidos** (topo, com badge laranja mostrando pendentes): marcar como **Recebidos** ao entregar/cobrar; cancelar com senha master se necessário.
+5. **Fechar caixa** ao encerrar o turno — imprime relatório com valores, formas de pagamento, produtos vendidos e diferença de gaveta.
+
+### Fechamento de caixa — regra nova
+**O caixa só fecha quando não houver pedidos pendentes.** Ao abrir o fechamento com pendências, aparece um aviso destacado com a lista de senhas pendentes e um botão **"Ver pedidos pendentes"** que leva direto para a aba Pendentes. O botão "Fechar caixa" fica desabilitado até tudo ser recebido ou cancelado.
 
 ## Relatórios (topo → Relatórios)
 Todos com **período personalizado** (data inicial e final):
@@ -39,12 +42,19 @@ Todos com **período personalizado** (data inicial e final):
 
 Cada relatório tem **📥 CSV** e **🖨 Imprimir** (formato cupom 80 mm).
 
+## Itens do pedido em andamento
+- Cada linha tem **nome em 14.5 px**, preço unitário, botões **− / +** maiores e o total da linha em destaque.
+- A área do carrinho cresce até **42 vh** para o atendente visualizar mais itens sem rolar.
+- Ao passar o mouse, a linha é destacada.
+- O contador **"X item(ns)"** fica no topo do painel do pedido.
+
 ## Impressão
-- Fonte dos cupons: **14 px** (senha em destaque ~42 px).
+- **Fonte dos cupons: 16 px** no corpo, 24 px no título, 20 px no total, 14 px nos textos auxiliares.
+- **Senha em destaque: 42 px** (não foi alterada, mantendo o destaque).
 - O navegador exige confirmação na caixa de impressão (segurança). Para impressão realmente automática, use um PC em modo quiosque com QZ Tray ou similar.
 
 ## Migração dos dados existentes
-O `localStorage` é migrado automaticamente na primeira execução da nova versão. As vendas antigas recebem uma senha aleatória e o status "Recebido".
+O `localStorage` é migrado automaticamente na primeira execução. Vendas antigas recebem senha aleatória e status "Recebido" para compatibilidade.
 
 ## Limitações
 - Não é emissor fiscal (não é NFC-e/SAT).
