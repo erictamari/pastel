@@ -6,28 +6,162 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="topbar"><div class="brand"><div class="brand-mark">PDV</div><div><strong id="storeTitle">Pastel & Lanche</strong><small>Frente de caixa</small></div></div><div class="top-actions"><span id="clock"></span><button class="btn ghost" id="settingsBtn">⚙ Aparência</button><button class="btn ghost" id="manageBtn">☰ Cadastros</button></div></header>
+<header class="topbar">
+  <div class="brand"><div class="brand-mark">PDV</div><div><strong id="storeTitle">Pastel & Lanche</strong><small>Frente de caixa</small></div></div>
+  <div class="top-actions">
+    <span id="clock"></span>
+    <button class="btn ghost cash-btn" id="cashBtn">💰 <span class="btn-label">Abrir caixa</span></button>
+    <button class="btn ghost" id="ordersBtn">📋 <span class="btn-label">Pedidos</span></button>
+    <button class="btn ghost" id="reportsBtn">📊 <span class="btn-label">Relatórios</span></button>
+    <button class="btn ghost" id="settingsBtn">⚙ <span class="btn-label">Aparência</span></button>
+    <button class="btn ghost" id="manageBtn">☰ <span class="btn-label">Cadastros</span></button>
+  </div>
+</header>
+
 <main class="app-shell">
   <section class="sales-panel">
     <div class="section-head"><div><h1>Nova venda</h1><p>Toque em um produto para adicionar ao pedido.</p></div><button class="btn secondary" id="newOrderBtn">＋ Novo pedido</button></div>
     <div class="group-tabs" id="groupTabs"></div>
     <div class="product-grid" id="productGrid"></div>
   </section>
+
   <aside class="order-panel">
-    <div class="order-head"><div><h2>Pedido <span id="orderNumber">#0001</span></h2><p id="orderStatus">Em andamento</p></div><button class="icon-btn" id="clearOrderBtn" title="Limpar pedido">🗑</button></div>
-    <label class="field-label" for="orderNote">Observação geral (opcional)</label><input id="orderNote" class="text-input" placeholder="Ex.: sem cebola, viagem...">
+    <div class="order-head"><div><h2>Pedido em andamento</h2><p id="cartCount">0 item(ns)</p></div><button class="icon-btn" id="clearOrderBtn" title="Limpar pedido">🗑</button></div>
+    <label class="field-label" for="orderNote">Observação geral (opcional)</label>
+    <input id="orderNote" class="text-input" placeholder="Ex.: sem cebola, viagem...">
     <div class="cart-head"><span>Item</span><span>Qtd.</span><span>Total</span></div>
     <div id="cartItems" class="cart-items"><div class="empty-state">Seu pedido está vazio.<br>Toque nos produtos para começar.</div></div>
-    <div class="discount-box"><label for="discountValue">Desconto</label><div class="discount-controls"><input id="discountValue" type="number" min="0" step="0.01" value="0" class="text-input" aria-label="Valor do desconto"><select id="discountType" class="text-input"><option value="money">R$</option><option value="percent">%</option></select><button class="btn secondary" id="applyDiscountBtn">Aplicar</button></div><small id="discountHint">Desconto em reais.</small></div>
-    <div class="totals"><div><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div><div><span>Desconto</span><strong id="discountTotal">− R$ 0,00</strong></div><div class="grand-total"><span>Total</span><strong id="grandTotal">R$ 0,00</strong></div></div>
+    <div class="discount-box">
+      <label for="discountValue">Desconto</label>
+      <div class="discount-controls">
+        <input id="discountValue" type="number" min="0" step="0.01" value="0" class="text-input" aria-label="Desconto">
+        <select id="discountType" class="text-input"><option value="money">R$</option><option value="percent">%</option></select>
+        <button class="btn secondary" id="applyDiscountBtn">Aplicar</button>
+      </div>
+      <small id="discountHint">Desconto em reais.</small>
+    </div>
+    <label class="field-label" for="paymentMethod">Forma de pagamento</label>
+    <select id="paymentMethod" class="text-input">
+      <option>Dinheiro</option><option>Débito</option><option>Crédito</option><option>Pix</option>
+    </select>
+    <div class="totals">
+      <div><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div>
+      <div><span>Desconto</span><strong id="discountTotal">− R$ 0,00</strong></div>
+      <div class="grand-total"><span>Total</span><strong id="grandTotal">R$ 0,00</strong></div>
+    </div>
     <button class="btn finish-btn" id="finishBtn">✓ Concluir e imprimir</button>
     <button class="btn outline full" id="cancelOrderBtn">Cancelar pedido</button>
   </aside>
 </main>
-<div class="modal-backdrop hidden" id="manageModal"><section class="modal wide"><div class="modal-head"><div><h2>Cadastros</h2><p>Gerencie grupos e produtos.</p></div><button class="icon-btn" data-close="manageModal">✕</button></div><div class="manage-tabs"><button class="manage-tab active" data-tab="products">Produtos</button><button class="manage-tab" data-tab="groups">Grupos</button><button class="manage-tab" data-tab="history">Vendas concluídas</button></div><div id="manageContent"></div></section></div>
-<div class="modal-backdrop hidden" id="editModal"><section class="modal"><div class="modal-head"><h2 id="editTitle">Novo produto</h2><button class="icon-btn" data-close="editModal">✕</button></div><form id="editForm"><div id="editFields"></div><div class="modal-actions"><button type="button" class="btn outline" data-close="editModal">Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form></section></div>
-<div class="modal-backdrop hidden" id="settingsModal"><section class="modal"><div class="modal-head"><h2>Aparência do PDV</h2><button class="icon-btn" data-close="settingsModal">✕</button></div><form id="settingsForm"><label class="field-label">Nome do estabelecimento</label><input class="text-input" name="storeName" maxlength="50" required><div class="settings-grid"><div><label class="field-label">Cor principal / botões</label><input class="color-input" name="primary" type="color"></div><div><label class="field-label">Cor dos grupos</label><input class="color-input" name="groupColor" type="color"></div><div><label class="field-label">Cor do texto dos botões</label><input class="color-input" name="buttonText" type="color"></div></div><label class="field-label">Fonte</label><select class="text-input" name="font"><option value="system">Padrão (recomendada)</option><option value="Arial, sans-serif">Arial</option><option value="Verdana, sans-serif">Verdana</option><option value="Tahoma, sans-serif">Tahoma</option><option value="Georgia, serif">Georgia</option></select><label class="field-label">Tamanho dos botões</label><select class="text-input" name="buttonSize"><option value="comfortable">Confortável</option><option value="large">Grande (touchscreen)</option><option value="compact">Compacto</option></select><div class="modal-actions"><button type="button" class="btn outline" data-close="settingsModal">Cancelar</button><button type="submit" class="btn primary">Salvar aparência</button></div></form></section></div>
-<div class="modal-backdrop hidden" id="receiptModal"><section class="modal"><div class="modal-head"><h2>Pedido concluído</h2><button class="icon-btn" data-close="receiptModal">✕</button></div><p>Venda registrada. Escolha a via para imprimir novamente.</p><div class="receipt-actions"><button class="btn primary" id="printKitchenBtn">Imprimir cozinha</button><button class="btn primary" id="printCustomerBtn">Imprimir cliente</button><button class="btn primary" id="printFullBtn">Imprimir cupom completo</button></div><button class="btn outline full" data-close="receiptModal">Fechar</button></section></div>
-<div id="printArea" class="print-area"></div><div id="toast" class="toast" role="status"></div>
+
+<!-- Cadastros -->
+<div class="modal-backdrop hidden" id="manageModal">
+  <section class="modal wide">
+    <div class="modal-head"><div><h2>Cadastros</h2><p>Gerencie grupos e produtos.</p></div><button class="icon-btn" data-close="manageModal">✕</button></div>
+    <div class="manage-tabs"><button class="manage-tab active" data-tab="products">Produtos</button><button class="manage-tab" data-tab="groups">Grupos</button></div>
+    <div id="manageContent"></div>
+  </section>
+</div>
+
+<!-- Editor -->
+<div class="modal-backdrop hidden" id="editModal">
+  <section class="modal">
+    <div class="modal-head"><h2 id="editTitle">Novo produto</h2><button class="icon-btn" data-close="editModal">✕</button></div>
+    <form id="editForm"><div id="editFields"></div><div class="modal-actions"><button type="button" class="btn outline" data-close="editModal">Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>
+  </section>
+</div>
+
+<!-- Aparência -->
+<div class="modal-backdrop hidden" id="settingsModal">
+  <section class="modal">
+    <div class="modal-head"><h2>Aparência e Segurança</h2><button class="icon-btn" data-close="settingsModal">✕</button></div>
+    <form id="settingsForm">
+      <label class="field-label">Nome do estabelecimento</label>
+      <input class="text-input" name="storeName" maxlength="50" required>
+      <div class="settings-grid">
+        <div><label class="field-label">Cor principal</label><input class="color-input" name="primary" type="color"></div>
+        <div><label class="field-label">Cor dos grupos</label><input class="color-input" name="groupColor" type="color"></div>
+        <div><label class="field-label">Cor do texto dos botões</label><input class="color-input" name="buttonText" type="color"></div>
+      </div>
+      <label class="field-label">Fonte</label>
+      <select class="text-input" name="font"><option value="system">Padrão</option><option value="Arial, sans-serif">Arial</option><option value="Verdana, sans-serif">Verdana</option><option value="Tahoma, sans-serif">Tahoma</option><option value="Georgia, serif">Georgia</option></select>
+      <label class="field-label">Tamanho dos botões</label>
+      <select class="text-input" name="buttonSize"><option value="comfortable">Confortável</option><option value="large">Grande (touchscreen)</option><option value="compact">Compacto</option></select>
+      <label class="field-label">Senha master (cancelamentos)</label>
+      <input class="text-input" name="masterPassword" type="password" placeholder="Deixe em branco para não alterar" autocomplete="new-password">
+      <small class="field-hint">Senha padrão inicial: <strong>1234</strong>. Altere por segurança.</small>
+      <div class="modal-actions"><button type="button" class="btn outline" data-close="settingsModal">Cancelar</button><button type="submit" class="btn primary">Salvar</button></div>
+    </form>
+  </section>
+</div>
+
+<!-- Caixa -->
+<div class="modal-backdrop hidden" id="cashModal">
+  <section class="modal">
+    <div class="modal-head"><h2 id="cashModalTitle">Abrir caixa</h2><button class="icon-btn" data-close="cashModal">✕</button></div>
+    <div id="cashModalContent"></div>
+  </section>
+</div>
+
+<!-- Pedidos -->
+<div class="modal-backdrop hidden" id="ordersModal">
+  <section class="modal wide">
+    <div class="modal-head"><div><h2>Pedidos</h2><p>Gerencie pedidos pendentes, recebidos e cancelados.</p></div><button class="icon-btn" data-close="ordersModal">✕</button></div>
+    <div class="manage-tabs">
+      <button class="manage-tab active" data-otab="pending">Pendentes</button>
+      <button class="manage-tab" data-otab="received">Recebidos</button>
+      <button class="manage-tab" data-otab="cancelled">Cancelados</button>
+    </div>
+    <div id="ordersContent"></div>
+  </section>
+</div>
+
+<!-- Relatórios -->
+<div class="modal-backdrop hidden" id="reportsModal">
+  <section class="modal wide">
+    <div class="modal-head"><div><h2>Relatórios</h2><p>Análises de vendas e financeiro.</p></div><button class="icon-btn" data-close="reportsModal">✕</button></div>
+    <div class="report-filters">
+      <div><label class="field-label">De</label><input class="text-input" type="date" id="reportStart"></div>
+      <div><label class="field-label">Até</label><input class="text-input" type="date" id="reportEnd"></div>
+      <button class="btn secondary" id="reportCsvBtn">📥 CSV</button>
+      <button class="btn secondary" id="reportPrintBtn">🖨 Imprimir</button>
+    </div>
+    <div class="manage-tabs">
+      <button class="manage-tab active" data-rtab="revenue">Faturamento</button>
+      <button class="manage-tab" data-rtab="products">Produtos vendidos</button>
+      <button class="manage-tab" data-rtab="daily">Vendas por dia</button>
+      <button class="manage-tab" data-rtab="finance">Financeiro</button>
+    </div>
+    <div id="reportContent"></div>
+  </section>
+</div>
+
+<!-- Senha -->
+<div class="modal-backdrop hidden" id="passwordModal">
+  <section class="modal narrow">
+    <div class="modal-head"><h2>Senha necessária</h2><button class="icon-btn" data-close="passwordModal">✕</button></div>
+    <p id="passwordPrompt">Digite a senha master.</p>
+    <input type="password" id="passwordInput" class="text-input" autocomplete="current-password" placeholder="Senha master">
+    <div class="modal-actions"><button class="btn outline" data-close="passwordModal">Cancelar</button><button class="btn primary" id="passwordConfirmBtn">Confirmar</button></div>
+  </section>
+</div>
+
+<!-- Recibo -->
+<div class="modal-backdrop hidden" id="receiptModal">
+  <section class="modal">
+    <div class="modal-head"><h2>Pedido concluído</h2><button class="icon-btn" data-close="receiptModal">✕</button></div>
+    <p>Venda registrada. Escolha a via para reimprimir.</p>
+    <div class="receipt-actions">
+      <button class="btn primary" id="printKitchenBtn">Imprimir cozinha</button>
+      <button class="btn primary" id="printCustomerBtn">Imprimir cliente</button>
+      <button class="btn primary" id="printFullBtn">Imprimir cupom completo</button>
+    </div>
+    <button class="btn outline full" data-close="receiptModal">Fechar</button>
+  </section>
+</div>
+
+<div id="printArea" class="print-area"></div>
+<div id="toast" class="toast" role="status"></div>
 <script src="app.js"></script>
-</body></html>
+</body>
+</html>
