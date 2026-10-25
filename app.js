@@ -8,7 +8,6 @@ const escapeHtml = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 const STORE_KEY = 'pdvPastelLanche_v1';
 const DEFAULT_MASTER = '1234';
 
-// Hash determinístico simples (deterrente local; suficiente para PDV em rede doméstica)
 function hashPassword(pw){
   const s = String(pw); let h1 = 0x811c9dc5, h2 = 0xdeadbeef;
   for (let i = 0; i < s.length; i++){
@@ -63,6 +62,16 @@ let passwordResolve = null;
 
 function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); } catch(e){ notify('Não foi possível salvar.'); } }
 function notify(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2600); }
+
+function allPendingOrders(){ return db.sales.filter(s=>s.status==='pending'); }
+
+function updateOrdersBadge(){
+  const badge = $('#ordersBadge');
+  if (!badge) return;
+  const n = allPendingOrders().length;
+  if (n > 0){ badge.textContent = n; badge.hidden = false; }
+  else badge.hidden = true;
+}
 
 function applySettings(){
   const s = db.settings;
@@ -208,11 +217,21 @@ function sessionSummary(session){
 function renderCashSummary(){
   const s = db.cashSession;
   const sum = sessionSummary(s);
+  const pendingAll = allPendingOrders();
+  const pendingTotal = pendingAll.reduce((a,x)=>a+x.total,0);
+  const blocker = pendingAll.length > 0;
   $('#cashModalContent').innerHTML = `
     <div class="cash-block">
       <div class="cash-row"><span>Aberto em</span><strong>${fmtDate(s.openedAt)}</strong></div>
       <div class="cash-row"><span>Valor inicial</span><strong>${money(s.initialAmount)}</strong></div>
     </div>
+    ${blocker?`
+    <div class="cash-warning">
+      <div class="cash-warning-title">⚠ Fechamento bloqueado</div>
+      <div>Existem <strong>${pendingAll.length}</strong> pedido(s) pendente(s) no valor de <strong>${money(pendingTotal)}</strong>.</div>
+      <div>Marque todos como <strong>recebidos</strong> (ou cancele com senha master) em <strong>Pedidos → Pendentes</strong> antes de fechar o caixa.</div>
+      <div class="cash-warning-list">${pendingAll.map(x=>`<span class="pending-senha">${String(x.senha).padStart(3,'0')}</span>`).join('')}</div>
+    </div>`:''}
     <h3 class="cash-sub">Vendas recebidas</h3>
     <div class="cash-row"><span>Dinheiro</span><strong>${money(sum.byMethod['Dinheiro']||0)}</strong></div>
     <div class="cash-row"><span>Débito</span><strong>${money(sum.byMethod['Débito']||0)}</strong></div>
@@ -224,17 +243,31 @@ function renderCashSummary(){
     <h3 class="cash-sub">Fechamento</h3>
     <div class="cash-row"><span>Dinheiro esperado na gaveta</span><strong>${money(sum.expectedCash)}</strong></div>
     <label class="field-label">Valor contado na gaveta (R$)</label>
-    <input class="text-input" type="number" min="0" step="0.01" id="cashCounted" value="${sum.expectedCash.toFixed(2)}">
+    <input class="text-input" type="number" min="0" step="0.01" id="cashCounted" value="${sum.expectedCash.toFixed(2)}" ${blocker?'disabled':''}>
     <div class="modal-actions">
+      ${blocker?`<button class="btn secondary" id="viewPendingBtn">Ver pedidos pendentes</button>`:''}
       <button class="btn outline" data-close="cashModal">Continuar vendendo</button>
-      <button class="btn primary" id="closeCashBtn">Fechar caixa e imprimir</button>
+      <button class="btn primary" id="closeCashBtn" ${blocker?'disabled':''}>Fechar caixa e imprimir</button>
     </div>`;
-  $('#closeCashBtn').onclick = closeCash;
+  const viewBtn = $('#viewPendingBtn');
+  if (viewBtn) viewBtn.onclick = ()=>{
+    $('#cashModal').classList.add('hidden');
+    activeOrdersTab = 'pending';
+    openOrders();
+  };
+  const closeBtn = $('#closeCashBtn');
+  if (closeBtn && !blocker) closeBtn.onclick = closeCash;
 }
 
 function closeCash(){
   const session = db.cashSession;
   if (!session) return;
+  const pending = allPendingOrders();
+  if (pending.length){
+    notify(`Não é possível fechar: ${pending.length} pedido(s) pendente(s). Receba ou cancele antes.`);
+    renderCashSummary();
+    return;
+  }
   const counted = Math.max(0, Number($('#cashCounted').value)||0);
   const sum = sessionSummary(session);
   const closed = {
@@ -346,6 +379,7 @@ function finishOrder(){
   renderCart();
   renderOrders();
   updateCashStatus();
+  updateOrdersBadge();
   $('#receiptModal').classList.remove('hidden');
   printReceipt('all', sale);
 }
@@ -452,12 +486,23 @@ function renderOrders(){
   });
 }
 
+function refreshCashModalIfOpen(){
+  if (db.cashSession && !$('#cashModal').classList.contains('hidden')){
+    renderCashSummary();
+  }
+}
+
 function receiveOrder(id){
   const sale = db.sales.find(s=>s.id===id);
   if (!sale||sale.status!=='pending') return;
   sale.status = 'received';
   sale.receivedAt = new Date().toISOString();
-  persist(); renderOrders(); updateCashStatus(); notify('Pedido recebido.');
+  persist();
+  renderOrders();
+  updateCashStatus();
+  updateOrdersBadge();
+  refreshCashModalIfOpen();
+  notify('Pedido recebido.');
 }
 
 function recalcSale(sale){
@@ -473,11 +518,16 @@ function recalcSale(sale){
 async function cancelOrder(id){
   const sale = db.sales.find(s=>s.id===id);
   if (!sale||sale.status==='cancelled') return;
-  const ok = await requestPassword('Senha master para cancelar o pedido #'+String(sale.senha).padStart(3,'0'));
+  const ok = await requestPassword('Senha master para cancelar o pedido senha '+String(sale.senha).padStart(3,'0'));
   if (!ok) return;
   sale.status = 'cancelled';
   sale.cancelledAt = new Date().toISOString();
-  persist(); renderOrders(); updateCashStatus(); notify('Pedido cancelado.');
+  persist();
+  renderOrders();
+  updateCashStatus();
+  updateOrdersBadge();
+  refreshCashModalIfOpen();
+  notify('Pedido cancelado.');
 }
 
 async function cancelOrderItem(saleId, lineId){
@@ -495,7 +545,12 @@ async function cancelOrderItem(saleId, lineId){
   } else {
     recalcSale(sale);
   }
-  persist(); renderOrders(); updateCashStatus(); notify('Item cancelado.');
+  persist();
+  renderOrders();
+  updateCashStatus();
+  updateOrdersBadge();
+  refreshCashModalIfOpen();
+  notify('Item cancelado.');
 }
 
 // ============ Cadastros ============
@@ -803,5 +858,6 @@ renderGroups();
 renderProducts();
 renderCart();
 updateCashStatus();
+updateOrdersBadge();
 tick();
 })();
